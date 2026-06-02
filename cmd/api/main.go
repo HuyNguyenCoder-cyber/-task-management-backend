@@ -1,8 +1,10 @@
 package main
 
 import "task-management-backend/internal/app"
-// Test thu nghiem robot CI
 
+// hello world
+// i'm Nguyen Huy
+// King of dev JAV
 func main() {
 	app.Run()
 }
