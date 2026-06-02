@@ -1,0 +1,39 @@
+name: Go Continuous Integration
+
+# 1. Định nghĩa "Khi nào" thì robot kích hoạt
+on:
+  push:
+    branches: [ main, master ] # Chạy khi bạn push code lên nhánh main hoặc master
+  pull_request:
+    branches: [ main, master ] # Chạy khi có ai đó mở Pull Request vào main hoặc master
+
+jobs:
+  build-and-test:
+    # 2. Khởi tạo một con máy ảo chạy hệ điều hành Ubuntu mới tinh
+    runs-on: ubuntu-latest
+
+    steps:
+    # Bước 2.1: Tải code từ GitHub về con máy ảo
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    # Bước 2.2: Cài đặt môi trường Go vào máy ảo
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22' # Thay bằng phiên bản Go hiện tại trong file go.mod của bạn
+        cache: true        # Bật cache để những lần sau chạy cực nhanh, đỡ tốn thời gian tải lại thư viện
+
+    # Bước 2.3: Chạy bài test 1 - LINT (Kiểm tra chuẩn mực Code Style)
+    - name: Run GolangCI-Lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: v1.59 # Phiên bản lint ổn định, tự động bắt lỗi code bẩn
+
+    # Bước 2.4: Chạy bài test 2 - GO VET (Kiểm tra lỗi logic tiềm ẩn)
+    - name: Run Go Vet
+      run: go vet ./...
+
+    # Bước 2.5: Chạy bài test 3 - GO TEST (Chạy các file unit test)
+    - name: Run Unit Tests
+      run: go test -v -race ./...
