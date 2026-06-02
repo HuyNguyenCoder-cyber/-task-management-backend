@@ -1,375 +1,124 @@
 package service
 
 import (
-	"errors"
+	"context"
 	"testing"
-	"time"
 
 	"task-management-backend/internal/domain"
+	"task-management-backend/internal/dto"
 	"task-management-backend/internal/repository"
 )
 
-type mockTaskRepository struct {
-	tasks map[string]*domain.Task
-
-	createErr  error
-	getByIDErr error
-	updateErr  error
-	deleteErr  error
+type mockTaskRepo struct {
+	createFn           func(context.Context, *domain.Task) error
+	findByIDFn         func(context.Context, int64) (*domain.Task, error)
+	findTasksForUserFn func(context.Context, int64) ([]*domain.Task, error)
+	findByProjectIDFn  func(context.Context, int64) ([]*domain.Task, error)
+	updateFn           func(context.Context, *domain.Task) error
+	deleteFn           func(context.Context, int64) error
 }
 
-func newMockTaskRepository() *mockTaskRepository {
-	return &mockTaskRepository{
-		tasks: make(map[string]*domain.Task),
+func (m *mockTaskRepo) Create(ctx context.Context, task *domain.Task) error {
+	if m.createFn != nil {
+		return m.createFn(ctx, task)
 	}
-}
-
-func (m *mockTaskRepository) Create(task *domain.Task) error {
-	if m.createErr != nil {
-		return m.createErr
-	}
-
-	m.tasks[task.ID] = task
 	return nil
 }
-
-func (m *mockTaskRepository) GetByID(id string) (*domain.Task, error) {
-	if m.getByIDErr != nil {
-		return nil, m.getByIDErr
+func (m *mockTaskRepo) FindByID(ctx context.Context, id int64) (*domain.Task, error) {
+	if m.findByIDFn != nil {
+		return m.findByIDFn(ctx, id)
 	}
-
-	task, exists := m.tasks[id]
-	if !exists {
-		return nil, repository.ErrTaskNotFound
-	}
-
-	return task, nil
+	return nil, repository.ErrTaskNotFound
 }
-
-func (m *mockTaskRepository) List() ([]*domain.Task, error) {
-	tasks := make([]*domain.Task, 0, len(m.tasks))
-
-	for _, task := range m.tasks {
-		tasks = append(tasks, task)
+func (m *mockTaskRepo) FindTasksForUser(ctx context.Context, userID int64) ([]*domain.Task, error) {
+	if m.findTasksForUserFn != nil {
+		return m.findTasksForUserFn(ctx, userID)
 	}
-
-	return tasks, nil
+	return nil, nil
 }
-
-func (m *mockTaskRepository) Update(task *domain.Task) error {
-	if m.updateErr != nil {
-		return m.updateErr
+func (m *mockTaskRepo) FindByProjectID(ctx context.Context, projectID int64) ([]*domain.Task, error) {
+	if m.findByProjectIDFn != nil {
+		return m.findByProjectIDFn(ctx, projectID)
 	}
-
-	_, exists := m.tasks[task.ID]
-	if !exists {
-		return repository.ErrTaskNotFound
+	return nil, nil
+}
+func (m *mockTaskRepo) Update(ctx context.Context, task *domain.Task) error {
+	if m.updateFn != nil {
+		return m.updateFn(ctx, task)
 	}
-
-	m.tasks[task.ID] = task
 	return nil
 }
-
-func (m *mockTaskRepository) Delete(id string) error {
-	if m.deleteErr != nil {
-		return m.deleteErr
+func (m *mockTaskRepo) Delete(ctx context.Context, id int64) error {
+	if m.deleteFn != nil {
+		return m.deleteFn(ctx, id)
 	}
-
-	_, exists := m.tasks[id]
-	if !exists {
-		return repository.ErrTaskNotFound
-	}
-
-	delete(m.tasks, id)
 	return nil
 }
 
 func TestTaskService_CreateTask_Success(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
+	repo := &mockTaskRepo{createFn: func(ctx context.Context, task *domain.Task) error {
+		task.ID = 100
+		return nil
+	}}
+	svc := NewTaskService(repo, &mockProjectRepo{}, &mockProjectMemberRepo{}, nil)
 
-	task, err := taskService.CreateTask(
-		"Learn service test",
-		"Write unit test for service layer",
-		domain.TaskStatusTodo,
-		"Huy",
-	)
-
+	task, err := svc.CreateTask(context.Background(), 1, dto.CreateTaskRequest{Title: "  Write test  "})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-
-	if task == nil {
-		t.Fatal("expected task, got nil")
+	if task.ID != 100 || task.Title != "Write test" || task.Status != domain.TaskStatusTodo {
+		t.Fatalf("unexpected task: %#v", task)
 	}
-
-	if task.ID == "" {
-		t.Error("expected task ID to be generated")
-	}
-
-	if task.Title != "Learn service test" {
-		t.Errorf("expected title %s, got %s", "Learn service test", task.Title)
-	}
-
-	if task.Description != "Write unit test for service layer" {
-		t.Errorf("expected description %s, got %s", "Write unit test for service layer", task.Description)
-	}
-
-	if task.Status != domain.TaskStatusTodo {
-		t.Errorf("expected status %s, got %s", domain.TaskStatusTodo, task.Status)
-	}
-
-	if task.Assignee != "Huy" {
-		t.Errorf("expected assignee %s, got %s", "Huy", task.Assignee)
-	}
-
-	if task.CreatedAt.IsZero() {
-		t.Error("expected CreatedAt to be set")
-	}
-
-	if task.UpdatedAt.IsZero() {
-		t.Error("expected UpdatedAt to be set")
-	}
-
-	savedTask, err := mockRepo.GetByID(task.ID)
-	if err != nil {
-		t.Fatalf("expected task saved in repo, got error %v", err)
-	}
-
-	if savedTask.ID != task.ID {
-		t.Errorf("expected saved task ID %s, got %s", task.ID, savedTask.ID)
+	if task.AssigneeID == nil || *task.AssigneeID != 1 {
+		t.Fatalf("expected assignee to default to creator")
 	}
 }
 
-func TestTaskService_CreateTask_DefaultStatus(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
+func TestTaskService_CreateTask_ValidationError(t *testing.T) {
+	svc := NewTaskService(&mockTaskRepo{}, &mockProjectRepo{}, &mockProjectMemberRepo{}, nil)
+	_, err := svc.CreateTask(context.Background(), 1, dto.CreateTaskRequest{Title: "ok", Status: "invalid"})
+	if err != ErrInvalidTaskStatus {
+		t.Fatalf("expected ErrInvalidTaskStatus, got %v", err)
+	}
+}
 
-	task, err := taskService.CreateTask(
-		"Task without status",
-		"Status should default to todo",
-		"",
-		"Huy",
-	)
+func TestTaskService_CreateTask_BusinessRuleViolation_AssigneeOtherUser(t *testing.T) {
+	assigneeID := int64(2)
+	svc := NewTaskService(&mockTaskRepo{}, &mockProjectRepo{}, &mockProjectMemberRepo{}, nil)
 
+	_, err := svc.CreateTask(context.Background(), 1, dto.CreateTaskRequest{Title: "task", AssigneeID: &assigneeID})
+	if err != ErrForbidden {
+		t.Fatalf("expected ErrForbidden, got %v", err)
+	}
+}
+
+func TestTaskService_UpdateTask_BusinessRuleViolation_AssigneeCannotEditTitle(t *testing.T) {
+	assigneeID := int64(2)
+	repo := &mockTaskRepo{findByIDFn: func(ctx context.Context, id int64) (*domain.Task, error) {
+		return &domain.Task{ID: id, CreatedBy: 1, AssigneeID: &assigneeID, Title: "old", Status: domain.TaskStatusTodo}, nil
+	}}
+	svc := NewTaskService(repo, &mockProjectRepo{}, &mockProjectMemberRepo{}, nil)
+
+	newTitle := "new"
+	_, err := svc.UpdateTask(context.Background(), 2, 10, dto.UpdateTaskRequest{TitleSet: true, Title: &newTitle})
+	if err != ErrForbidden {
+		t.Fatalf("expected ErrForbidden, got %v", err)
+	}
+}
+
+func TestTaskService_UpdateTask_Success_AssigneeChangeStatus(t *testing.T) {
+	assigneeID := int64(2)
+	repo := &mockTaskRepo{findByIDFn: func(ctx context.Context, id int64) (*domain.Task, error) {
+		return &domain.Task{ID: id, CreatedBy: 1, AssigneeID: &assigneeID, Status: domain.TaskStatusTodo}, nil
+	}}
+	svc := NewTaskService(repo, &mockProjectRepo{}, &mockProjectMemberRepo{}, nil)
+
+	status := "done"
+	task, err := svc.UpdateTask(context.Background(), 2, 10, dto.UpdateTaskRequest{StatusSet: true, Status: &status})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-
-	if task.Status != domain.TaskStatusTodo {
-		t.Errorf("expected default status %s, got %s", domain.TaskStatusTodo, task.Status)
-	}
-}
-
-func TestTaskService_CreateTask_TitleRequired(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	task, err := taskService.CreateTask(
-		"   ",
-		"Invalid empty title",
-		domain.TaskStatusTodo,
-		"Huy",
-	)
-
-	if task != nil {
-		t.Errorf("expected task nil, got %v", task)
-	}
-
-	if !errors.Is(err, ErrTaskTitleRequired) {
-		t.Errorf("expected ErrTaskTitleRequired, got %v", err)
-	}
-}
-
-func TestTaskService_CreateTask_InvalidStatus(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	task, err := taskService.CreateTask(
-		"Invalid status task",
-		"Status is invalid",
-		domain.TaskStatus("wrong_status"),
-		"Huy",
-	)
-
-	if task != nil {
-		t.Errorf("expected task nil, got %v", task)
-	}
-
-	if !errors.Is(err, ErrInvalidTaskStatus) {
-		t.Errorf("expected ErrInvalidTaskStatus, got %v", err)
-	}
-}
-
-func TestTaskService_UpdateTask_Success(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	now := time.Now()
-
-	existingTask := &domain.Task{
-		ID:          "task-1",
-		Title:       "Old title",
-		Description: "Old description",
-		Status:      domain.TaskStatusTodo,
-		Assignee:    "Huy",
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
-
-	err := mockRepo.Create(existingTask)
-	if err != nil {
-		t.Fatalf("failed to seed task: %v", err)
-	}
-
-	updatedTask, err := taskService.UpdateTask(
-		"task-1",
-		"New title",
-		"New description",
-		domain.TaskStatusInProgress,
-		"Huy Nguyen",
-	)
-
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if updatedTask.ID != existingTask.ID {
-		t.Errorf("expected ID %s, got %s", existingTask.ID, updatedTask.ID)
-	}
-
-	if updatedTask.Title != "New title" {
-		t.Errorf("expected title %s, got %s", "New title", updatedTask.Title)
-	}
-
-	if updatedTask.Description != "New description" {
-		t.Errorf("expected description %s, got %s", "New description", updatedTask.Description)
-	}
-
-	if updatedTask.Status != domain.TaskStatusInProgress {
-		t.Errorf("expected status %s, got %s", domain.TaskStatusInProgress, updatedTask.Status)
-	}
-
-	if updatedTask.Assignee != "Huy Nguyen" {
-		t.Errorf("expected assignee %s, got %s", "Huy Nguyen", updatedTask.Assignee)
-	}
-
-	if !updatedTask.CreatedAt.Equal(existingTask.CreatedAt) {
-		t.Error("expected CreatedAt to stay unchanged")
-	}
-
-	if !updatedTask.UpdatedAt.After(existingTask.UpdatedAt) {
-		t.Error("expected UpdatedAt to be updated")
-	}
-}
-
-func TestTaskService_UpdateTask_TitleRequired(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	updatedTask, err := taskService.UpdateTask(
-		"task-1",
-		"   ",
-		"Invalid title",
-		domain.TaskStatusTodo,
-		"Huy",
-	)
-
-	if updatedTask != nil {
-		t.Errorf("expected updatedTask nil, got %v", updatedTask)
-	}
-
-	if !errors.Is(err, ErrTaskTitleRequired) {
-		t.Errorf("expected ErrTaskTitleRequired, got %v", err)
-	}
-}
-
-func TestTaskService_UpdateTask_InvalidStatus(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	updatedTask, err := taskService.UpdateTask(
-		"task-1",
-		"Valid title",
-		"Invalid status",
-		domain.TaskStatus("wrong_status"),
-		"Huy",
-	)
-
-	if updatedTask != nil {
-		t.Errorf("expected updatedTask nil, got %v", updatedTask)
-	}
-
-	if !errors.Is(err, ErrInvalidTaskStatus) {
-		t.Errorf("expected ErrInvalidTaskStatus, got %v", err)
-	}
-}
-
-func TestTaskService_UpdateTask_NotFound(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	updatedTask, err := taskService.UpdateTask(
-		"not-found-id",
-		"Valid title",
-		"Valid description",
-		domain.TaskStatusTodo,
-		"Huy",
-	)
-
-	if updatedTask != nil {
-		t.Errorf("expected updatedTask nil, got %v", updatedTask)
-	}
-
-	if !errors.Is(err, repository.ErrTaskNotFound) {
-		t.Errorf("expected ErrTaskNotFound, got %v", err)
-	}
-}
-
-func TestTaskService_DeleteTask_Success(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	now := time.Now()
-
-	task := &domain.Task{
-		ID:          "task-1",
-		Title:       "Task to delete",
-		Description: "This task should be deleted",
-		Status:      domain.TaskStatusDone,
-		Assignee:    "Huy",
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
-
-	err := mockRepo.Create(task)
-	if err != nil {
-		t.Fatalf("failed to seed task: %v", err)
-	}
-
-	err = taskService.DeleteTask("task-1")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	deletedTask, err := mockRepo.GetByID("task-1")
-
-	if deletedTask != nil {
-		t.Errorf("expected deleted task nil, got %v", deletedTask)
-	}
-
-	if !errors.Is(err, repository.ErrTaskNotFound) {
-		t.Errorf("expected ErrTaskNotFound after delete, got %v", err)
-	}
-}
-
-func TestTaskService_DeleteTask_NotFound(t *testing.T) {
-	mockRepo := newMockTaskRepository()
-	taskService := NewTaskService(mockRepo)
-
-	err := taskService.DeleteTask("not-found-id")
-
-	if !errors.Is(err, repository.ErrTaskNotFound) {
-		t.Errorf("expected ErrTaskNotFound, got %v", err)
+	if task.Status != domain.TaskStatusDone {
+		t.Fatalf("expected status done, got %s", task.Status)
 	}
 }

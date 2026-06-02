@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Detail - Task Management</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="project-detail">
+  <nav class="navbar">
+    <a class="logo" href="home.html">Task Management</a>
+    <a class="nav-link" href="tasks.html">Tasks</a>
+    <a class="nav-link" href="projects.html">Projects</a>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <a class="nav-link" data-auth="out" href="login.html">Login</a>
+    <a class="nav-link" data-auth="out" href="register.html">Register</a>
+    <button class="nav-button" data-auth="in" id="logout">Logout</button>
+  </nav>
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>Project detail</h1>
+        <p class="muted">Project info, members, and project tasks.</p>
+      </div>
+      <a class="button secondary" href="projects.html">Back to projects</a>
+    </div>
+    <div id="status" class="status" hidden></div>
+    <div class="grid">
+      <section class="panel" id="project-detail">
+        <div class="empty">Loading project...</div>
+      </section>
+      <section class="panel">
+        <h2>Members</h2>
+        <div id="project-members"></div>
+        <form id="member-form" hidden>
+          <label>Add member by email
+            <input name="email" type="email" required>
+          </label>
+          <button type="submit">Add member</button>
+        </form>
+      </section>
+    </div>
+    <section class="panel">
+      <h2>Create task in this project</h2>
+      <form id="task-form">
+        <label>Title
+          <input name="title" required>
+        </label>
+        <label>Description
+          <textarea name="description"></textarea>
+        </label>
+        <div class="row">
+          <label>Status
+            <select name="status" required>
+              <option value="todo">todo</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+            </select>
+          </label>
+          <label>Assignee
+            <select name="assignee_id" id="project-task-assignee">
+              <option value="">Unassigned / me</option>
+            </select>
+          </label>
+        </div>
+        <label>Due date
+          <input name="due_date" type="datetime-local">
+        </label>
+        <button type="submit">Create task</button>
+      </form>
+    </section>
+    <section class="panel">
+      <h2>Tasks in this project</h2>
+      <div id="project-task-list"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

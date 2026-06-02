@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects - Task Management</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="projects">
+  <nav class="navbar">
+    <a class="logo" href="home.html">Task Management</a>
+    <a class="nav-link" href="tasks.html">Tasks</a>
+    <a class="nav-link" href="projects.html">Projects</a>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <a class="nav-link" data-auth="out" href="login.html">Login</a>
+    <a class="nav-link" data-auth="out" href="register.html">Register</a>
+    <button class="nav-button" data-auth="in" id="logout">Logout</button>
+  </nav>
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>Projects</h1>
+        <p class="muted">Create, update, delete, and open project details.</p>
+      </div>
+    </div>
+    <div id="status" class="status" hidden></div>
+    <div class="grid">
+      <section class="panel">
+        <h2>Project form</h2>
+        <form id="project-form">
+          <input type="hidden" name="id">
+          <label>Name
+            <input name="name" required>
+          </label>
+          <label>Description
+            <textarea name="description"></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit">Save project</button>
+            <button class="secondary" id="clear-project-form" type="button">Clear</button>
+          </div>
+        </form>
+      </section>
+      <section>
+        <h2>Project list</h2>
+        <div id="project-list"></div>
+      </section>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Detail - Task Management</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="task-detail">
+  <nav class="navbar">
+    <a class="logo" href="home.html">Task Management</a>
+    <a class="nav-link" href="tasks.html">Tasks</a>
+    <a class="nav-link" href="projects.html">Projects</a>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <a class="nav-link" data-auth="out" href="login.html">Login</a>
+    <a class="nav-link" data-auth="out" href="register.html">Register</a>
+    <button class="nav-button" data-auth="in" id="logout">Logout</button>
+  </nav>
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>Task detail</h1>
+        <p class="muted">Loaded from GET /tasks/:id.</p>
+      </div>
+      <a class="button secondary" href="tasks.html">Back to tasks</a>
+    </div>
+    <div id="status" class="status" hidden></div>
+    <section class="panel" id="task-detail">
+      <div class="empty">Loading task...</div>
+    </section>
+    <section class="panel" id="discussion-panel">
+      <h2>Thảo luận</h2>
+      <div id="comment-list" class="comment-list">
+        <div class="empty">Đang tải bình luận...</div>
+      </div>
+      <label for="comment-input">Nội dung comment</label>
+      <textarea id="comment-input" placeholder="Nhập nội dung thảo luận..."></textarea>
+      <div class="actions">
+        <button id="btn-send-comment" class="comment-send-btn" type="button">Gửi Comment</button>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

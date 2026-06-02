@@ -1,11 +1,17 @@
 package service
 
-import "task-management-backend/internal/domain"
+import (
+	"context"
+
+	"task-management-backend/internal/domain"
+	"task-management-backend/internal/dto"
+)
 
 type TaskService interface {
-	CreateTask(title string, description string, status domain.TaskStatus, assignee string) (*domain.Task, error)
-	GetTaskByID(id string) (*domain.Task, error)
-	ListTasks() ([]*domain.Task, error)
-	UpdateTask(id string, title string, description string, status domain.TaskStatus, assignee string) (*domain.Task, error)
-	DeleteTask(id string) error
+	CreateTask(ctx context.Context, userID int64, req dto.CreateTaskRequest) (*domain.Task, error)
+	CreateProjectTask(ctx context.Context, userID int64, projectID int64, req dto.CreateTaskRequest) (*domain.Task, error)
+	GetTaskByID(ctx context.Context, userID int64, id int64) (*domain.Task, error)
+	ListTasks(ctx context.Context, userID int64, projectID *int64) ([]*domain.Task, error)
+	UpdateTask(ctx context.Context, userID int64, id int64, req dto.UpdateTaskRequest) (*domain.Task, error)
+	DeleteTask(ctx context.Context, userID int64, id int64) error
 }

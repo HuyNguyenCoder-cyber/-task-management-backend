@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vscode
+.env
+*.local
+*.log
+tmp/
+bin/
+dist/
+coverage/
+**/*_test.go
+**/.DS_Store

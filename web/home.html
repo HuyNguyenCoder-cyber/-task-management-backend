@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Management Test UI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="home">
+  <nav class="navbar">
+    <a class="logo" href="home.html">Task Management</a>
+    <a class="nav-link" href="tasks.html">Tasks</a>
+    <a class="nav-link" href="projects.html">Projects</a>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <a class="nav-link" data-auth="out" href="login.html">Login</a>
+    <a class="nav-link" data-auth="out" href="register.html">Register</a>
+    <button class="nav-button" data-auth="in" id="logout">Logout</button>
+  </nav>
+  <main class="container">
+    <section class="panel">
+      <h1>Internal Backend Test UI</h1>
+      <p class="muted" id="home-state">Checking login state...</p>
+      <div class="actions">
+        <a class="button" href="tasks.html">Open Tasks</a>
+        <a class="button secondary" href="projects.html">Open Projects</a>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
