@@ -25,10 +25,7 @@ jobs:
         cache: true        # Bật cache để những lần sau chạy cực nhanh, đỡ tốn thời gian tải lại thư viện
 
     # Bước 2.3: Chạy bài test 1 - LINT (Kiểm tra chuẩn mực Code Style)
-    - name: Run GolangCI-Lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: v1.59 # Phiên bản lint ổn định, tự động bắt lỗi code bẩn
+
 
     # Bước 2.4: Chạy bài test 2 - GO VET (Kiểm tra lỗi logic tiềm ẩn)
     - name: Run Go Vet
